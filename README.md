@@ -239,6 +239,20 @@ Endpoints:
 
 > **Using Ollama with Docker?** Use `http://host.docker.internal:11434` as the Ollama URL instead of `localhost`.
 
+### Render Deployment
+
+This repository includes a `render.yaml` manifest for deploying the app as a single Render web service with a persistent disk mounted at `/app/backend/data`.
+
+Use the following settings in Render:
+
+- Service type: `Web Service`
+- Environment: `Docker`
+- Build: use the root `Dockerfile`
+- Health check path: `/api/v1/health`
+- Disk mount: `/app/backend/data`
+
+Set your LLM environment variables in Render as needed, for example `LLM_PROVIDER`, `LLM_API_KEY`, and `LLM_API_BASE`. If you use an external URL for the app, set `FRONTEND_BASE_URL` to that URL so PDF rendering and generated links stay aligned with the public deployment.
+
 ### Tech Stack
 
 | Component | Technology |

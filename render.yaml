@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: careeros
+    env: docker
+    plan: starter
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    disk:
+      name: careeros-data
+      mountPath: /app/backend/data
+      sizeGB: 1

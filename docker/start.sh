@@ -11,7 +11,8 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Internal port configuration for single-port deployment.
-FRONTEND_PORT="3000"
+# Render injects PORT for the public web service port, so prefer it when set.
+FRONTEND_PORT="${PORT:-3000}"
 BACKEND_PORT="8000"
 
 # Print banner
@@ -150,6 +151,10 @@ echo ""
 info "Loading configuration from environment and *_FILE secrets..."
 file_env "LOG_LEVEL" "INFO"
 file_env "LOG_LLM" "WARNING"
+
+if [ -z "${FRONTEND_BASE_URL:-}" ] && [ -n "${RENDER_EXTERNAL_URL:-}" ]; then
+    export FRONTEND_BASE_URL="${RENDER_EXTERNAL_URL}"
+fi
 
 file_env "LLM_PROVIDER" "openai"
 
