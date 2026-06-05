@@ -45,7 +45,17 @@ class AuthMiddleware(BaseHTTPMiddleware):
             current_user_id_var.set(None)
             return await call_next(request)
 
-        if any(path.startswith(prefix) for prefix in ["/api/v1/auth", "/api/v1/health", "/docs", "/redoc", "/openapi.json"]):
+        if any(
+            path.startswith(prefix)
+            for prefix in [
+                "/api/v1/auth",
+                "/api/v1/health",
+                "/api/v1/resumes/upload",  # allow anonymous uploads for testing
+                "/docs",
+                "/redoc",
+                "/openapi.json",
+            ]
+        ):
             is_public = True
         elif path == "/" or (path == "/api/v1/config/language" and request.method == "GET"):
             is_public = True
