@@ -215,8 +215,9 @@ BACKEND_PID=$!
 trap cleanup SIGTERM SIGINT SIGQUIT
 
 # Wait for backend to be ready
-info "Waiting for backend to be ready..."
-for i in {1..30}; do
+BACKEND_STARTUP_TIMEOUT_SECONDS="${BACKEND_STARTUP_TIMEOUT_SECONDS:-120}"
+info "Waiting up to ${BACKEND_STARTUP_TIMEOUT_SECONDS} seconds for backend to be ready..."
+for ((i=1; i<=BACKEND_STARTUP_TIMEOUT_SECONDS; i++)); do
     if curl -s "http://127.0.0.1:${BACKEND_PORT}/api/v1/health" > /dev/null 2>&1; then
         status "Backend is ready (PID: $BACKEND_PID)"
         break
@@ -225,8 +226,8 @@ for i in {1..30}; do
         error "Backend process (PID: $BACKEND_PID) died during startup"
         exit 1
     fi
-    if [ $i -eq 30 ]; then
-        error "Backend failed to start within 30 seconds"
+    if [ $i -eq "$BACKEND_STARTUP_TIMEOUT_SECONDS" ]; then
+        error "Backend failed to start within ${BACKEND_STARTUP_TIMEOUT_SECONDS} seconds"
         exit 1
     fi
     sleep 1
