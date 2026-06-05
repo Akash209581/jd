@@ -73,32 +73,32 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const variantStyles = {
     danger: {
       icon: (
-        <div className="w-12 h-12 border-2 border-red-600 bg-red-50 flex items-center justify-center">
-          <span className="text-red-600 text-2xl font-bold">!</span>
+        <div className="w-12 h-12 rounded-xl border border-red-500/30 bg-red-500/10 flex items-center justify-center shrink-0">
+          <span className="text-red-400 text-xl font-bold">!</span>
         </div>
       ),
       buttonVariant: 'destructive' as const,
     },
     warning: {
       icon: (
-        <div className="w-12 h-12 border-2 border-orange-500 bg-orange-50 flex items-center justify-center">
-          <span className="text-orange-500 text-2xl font-bold">!</span>
+        <div className="w-12 h-12 rounded-xl border border-orange-500/30 bg-orange-500/10 flex items-center justify-center shrink-0">
+          <span className="text-orange-400 text-xl font-bold">!</span>
         </div>
       ),
       buttonVariant: 'warning' as const,
     },
     success: {
       icon: (
-        <div className="w-12 h-12 border-2 border-green-700 bg-green-50 flex items-center justify-center">
-          <span className="text-green-700 text-2xl font-bold">&#10003;</span>
+        <div className="w-12 h-12 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-center shrink-0">
+          <span className="text-emerald-400 text-xl font-bold">&#10003;</span>
         </div>
       ),
       buttonVariant: 'success' as const,
     },
     default: {
       icon: (
-        <div className="w-12 h-12 border-2 border-blue-700 bg-blue-50 flex items-center justify-center">
-          <span className="text-blue-700 text-2xl font-bold">?</span>
+        <div className="w-12 h-12 rounded-xl border border-violet-500/30 bg-violet-500/10 flex items-center justify-center shrink-0">
+          <span className="text-violet-400 text-xl font-bold">?</span>
         </div>
       ),
       buttonVariant: 'default' as const,
@@ -109,15 +109,15 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] p-0 gap-0">
+      <DialogContent className="sm:max-w-[425px] p-0 gap-0 border border-zinc-800 bg-zinc-950">
         <DialogHeader className="p-6 pb-4">
           <div className="flex items-start gap-4">
             {icon}
             <div className="flex-1">
-              <DialogTitle className="font-serif text-xl font-bold uppercase tracking-tight">
+              <DialogTitle className="font-sans text-lg font-bold tracking-tight text-zinc-100">
                 {title}
               </DialogTitle>
-              <DialogDescription className="font-mono text-xs text-ink-soft mt-2 max-h-60 overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">
+              <DialogDescription className="font-sans text-xs text-zinc-400 mt-2 max-h-60 overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">
                 {description}
               </DialogDescription>
             </div>
@@ -125,21 +125,20 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </DialogHeader>
         {errorMessage && (
           <div className="px-6 pb-4">
-            <div className="border-2 border-red-600 bg-red-50 p-3 font-mono text-xs text-red-700 max-h-60 overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">
+            <div className="border border-red-500/20 bg-red-950/20 rounded-xl p-3 font-mono text-xs text-red-400 max-h-60 overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]">
               {errorMessage}
             </div>
           </div>
         )}
-        <DialogFooter className="p-4 bg-secondary border-t border-black flex-row justify-end gap-3">
+        <DialogFooter className="p-4 bg-zinc-900/40 border-t border-zinc-800/80 flex-row justify-end gap-3 rounded-b-2xl">
           {showCancelButton && (
-            <Button variant="outline" onClick={handleCancel} className="rounded-none border-black">
+            <Button variant="outline" onClick={handleCancel}>
               {finalCancelLabel}
             </Button>
           )}
           <Button
             variant={buttonVariant}
             onClick={handleConfirm}
-            className="rounded-none"
             disabled={confirmDisabled}
           >
             {finalConfirmLabel}

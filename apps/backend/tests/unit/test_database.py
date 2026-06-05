@@ -9,13 +9,19 @@ and stats are verified end-to-end on the storage.
 import pytest
 
 from app.database import Database
+from app.config import settings
 
 
 @pytest.fixture
 async def db(tmp_path):
+    orig_url = settings.database_url
+    settings.database_url = None
     database = Database(db_path=tmp_path / "test_db.db")
-    yield database
-    await database.close()
+    try:
+        yield database
+    finally:
+        settings.database_url = orig_url
+        await database.close()
 
 
 class TestResumeCrud:

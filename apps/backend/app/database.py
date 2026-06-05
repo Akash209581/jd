@@ -1,13 +1,7 @@
-"""SQLAlchemy (SQLite) data layer for Resume Matcher.
+"""SQLAlchemy data layer for CareerOS supporting SQLite and PostgreSQL multitenancy.
 
-This is a behavior-preserving replacement for the original TinyDB wrapper. The
-``Database`` facade keeps the same method names/signatures and returns **plain
-dicts** (never ORM rows), so the ~50 call sites only needed ``await`` added.
-
-Two engines back one SQLite file:
-- an **async** engine (``aiosqlite``) for the document tables and applications;
-- a **sync** engine for the encrypted ``api_keys`` table, which is read on the
-  synchronous LLM hot path (``get_llm_config`` → ``resolve_api_key``).
+The ``Database`` facade scopes all queries (selects, updates, deletes) to the
+active `user_id` when the request-scoped context variable is set.
 """
 
 import asyncio
@@ -26,14 +20,12 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config import settings
 from app.db_engine import init_models_sync, make_async_engine, make_sync_engine
 from app.models import ApiKey, Application, Improvement, Job, Resume
+from app.context import current_user_id_var
 
 logger = logging.getLogger(__name__)
 
-# Columns that are first-class on the jobs table; everything else the pipeline
-# attaches dynamically is stored in ``metadata_json`` (see Job model).
 _JOB_CORE_FIELDS = frozenset({"job_id", "content", "resume_id", "created_at"})
 
-# Application status columns (stable keys, decoupled from i18n labels).
 APPLICATION_STATUSES: tuple[str, ...] = (
     "saved",
     "applied",
@@ -46,21 +38,19 @@ APPLICATION_STATUSES: tuple[str, ...] = (
 
 
 def _now() -> str:
-    """Current UTC time as an ISO-8601 string (TinyDB-era format)."""
+    """Current UTC time as an ISO-8601 string."""
     return datetime.now(timezone.utc).isoformat()
 
 
 class Database:
-    """Async SQLAlchemy facade for resume matcher data."""
+    """Async SQLAlchemy facade for CareerOS data with context-aware scoping."""
 
-    # Serializes concurrent master-resume promotion. Stays the *primary*
-    # mechanism for the single-master invariant (the partial unique index is a
-    # storage-level backstop).
     _master_resume_lock = asyncio.Lock()
 
-    def __init__(self, db_path: Path | None = None):
+    def __init__(self, db_path: Path | None = None, database_url: str | None = None):
         self.db_path = db_path or settings.sqlite_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.database_url = database_url or settings.database_url
         self._async_engine = None
         self._async_session_factory: async_sessionmaker[AsyncSession] | None = None
         self._sync_engine = None
@@ -70,18 +60,14 @@ class Database:
     # -- engine / session plumbing ------------------------------------------
 
     def _ensure_initialized(self) -> None:
-        """Create engines and tables once (idempotent).
-
-        Tables are created via the **sync** engine so both the sync (api_keys)
-        and async (docs) paths see them immediately, without needing an event
-        loop. Both engines point at the same file.
-        """
+        """Create engines and tables once (idempotent)."""
         if self._initialized:
             return
-        self._sync_engine = make_sync_engine(self.db_path)
+        target = self.database_url if self.database_url else self.db_path
+        self._sync_engine = make_sync_engine(target)
         self._sync_session_factory = sessionmaker(self._sync_engine, expire_on_commit=False)
         init_models_sync(self._sync_engine)
-        self._async_engine = make_async_engine(self.db_path)
+        self._async_engine = make_async_engine(target)
         self._async_session_factory = async_sessionmaker(
             self._async_engine, expire_on_commit=False
         )
@@ -130,7 +116,6 @@ class Database:
             "created_at": row.created_at,
             "updated_at": row.updated_at,
         }
-        # Preserve TinyDB absence semantics: omit the key entirely when None.
         if row.original_markdown is not None:
             doc["original_markdown"] = row.original_markdown
         return doc
@@ -145,7 +130,7 @@ class Database:
         }
         meta = row.metadata_json or {}
         if isinstance(meta, dict):
-            doc.update(meta)  # flatten dynamic fields to top level
+            doc.update(meta)
         return doc
 
     @staticmethod
@@ -192,16 +177,16 @@ class Database:
         title: str | None = None,
         original_markdown: str | None = None,
     ) -> dict[str, Any]:
-        """Create a new resume entry.
-
-        processing_status: "pending", "processing", "ready", "failed"
-        """
+        """Create a new resume entry scoped to the current user context."""
         resume_id = str(uuid4())
         now = _now()
+        user_id = current_user_id_var.get()
+        
         async with self._session() as session:
             session.add(
                 Resume(
                     resume_id=resume_id,
+                    user_id=user_id,
                     content=content,
                     content_type=content_type,
                     filename=filename,
@@ -221,6 +206,7 @@ class Database:
 
         doc: dict[str, Any] = {
             "resume_id": resume_id,
+            "user_id": user_id,
             "content": content,
             "content_type": content_type,
             "filename": filename,
@@ -250,17 +236,11 @@ class Database:
         original_markdown: str | None = None,
         title: str | None = None,
     ) -> dict[str, Any]:
-        """Create a new resume with atomic master assignment.
-
-        Uses an asyncio.Lock to prevent race conditions when multiple uploads
-        happen concurrently and both try to become master.
-        """
+        """Create a new resume with atomic master assignment scoped to the user."""
         async with self._master_resume_lock:
             current_master = await self.get_master_resume()
             is_master = current_master is None
 
-            # Recovery: if the current master is stuck failed/processing, demote
-            # it so this upload can become the new master.
             if current_master and current_master.get("processing_status") in (
                 "failed",
                 "processing",
@@ -286,29 +266,31 @@ class Database:
             )
 
     async def get_resume(self, resume_id: str) -> dict[str, Any] | None:
-        """Get resume by ID."""
+        """Get resume by ID, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             row = await session.get(Resume, resume_id)
+            if row and user_id and row.user_id != user_id:
+                return None
             return self._resume_to_dict(row) if row else None
 
     async def get_master_resume(self) -> dict[str, Any] | None:
-        """Get the master resume if exists."""
+        """Get the master resume if exists, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
-            result = await session.execute(
-                select(Resume).where(Resume.is_master.is_(True))
-            )
+            stmt = select(Resume).where(Resume.is_master.is_(True))
+            if user_id:
+                stmt = stmt.where(Resume.user_id == user_id)
+            result = await session.execute(stmt)
             row = result.scalars().first()
             return self._resume_to_dict(row) if row else None
 
     async def update_resume(self, resume_id: str, updates: dict[str, Any]) -> dict[str, Any]:
-        """Update resume by ID.
-
-        Raises:
-            ValueError: If resume not found.
-        """
+        """Update resume by ID, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             row = await session.get(Resume, resume_id)
-            if row is None:
+            if row is None or (user_id and row.user_id != user_id):
                 raise ValueError(f"Resume not found: {resume_id}")
             for key, value in updates.items():
                 if hasattr(row, key):
@@ -320,40 +302,43 @@ class Database:
             return self._resume_to_dict(row)
 
     async def delete_resume(self, resume_id: str) -> bool:
-        """Delete resume by ID."""
+        """Delete resume by ID, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             row = await session.get(Resume, resume_id)
-            if row is None:
+            if row is None or (user_id and row.user_id != user_id):
                 return False
             await session.delete(row)
             await session.commit()
             return True
 
     async def list_resumes(self) -> list[dict[str, Any]]:
-        """List all resumes."""
+        """List all resumes, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
-            result = await session.execute(select(Resume).order_by(Resume.created_at))
+            stmt = select(Resume)
+            if user_id:
+                stmt = stmt.where(Resume.user_id == user_id)
+            stmt = stmt.order_by(Resume.created_at)
+            result = await session.execute(stmt)
             return [self._resume_to_dict(row) for row in result.scalars().all()]
 
     async def set_master_resume(self, resume_id: str) -> bool:
-        """Set a resume as the master, unsetting any existing master.
-
-        Returns False if the resume doesn't exist. Demote-then-promote happens
-        in a single transaction so the partial unique index is never violated.
-        """
+        """Set a resume as the master, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             target = await session.get(Resume, resume_id)
-            if target is None:
+            if target is None or (user_id and target.user_id != user_id):
                 logger.warning("Cannot set master: resume %s not found", resume_id)
                 return False
 
-            current = await session.execute(
-                select(Resume).where(Resume.is_master.is_(True))
-            )
+            stmt = select(Resume).where(Resume.is_master.is_(True))
+            if user_id:
+                stmt = stmt.where(Resume.user_id == user_id)
+            current = await session.execute(stmt)
             for row in current.scalars().all():
                 if row.resume_id != resume_id:
                     row.is_master = False
-            # Flush the demotions before promoting to satisfy the unique index.
             await session.flush()
             target.is_master = True
             await session.commit()
@@ -362,40 +347,45 @@ class Database:
     # -- Job operations -----------------------------------------------------
 
     async def create_job(self, content: str, resume_id: str | None = None) -> dict[str, Any]:
-        """Create a new job description entry."""
+        """Create a new job description entry, scoped to user context."""
         job_id = str(uuid4())
         now = _now()
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             session.add(
-                Job(job_id=job_id, content=content, resume_id=resume_id, created_at=now, metadata_json={})
+                Job(
+                    job_id=job_id,
+                    user_id=user_id,
+                    content=content,
+                    resume_id=resume_id,
+                    created_at=now,
+                    metadata_json={}
+                )
             )
             await session.commit()
         return {
             "job_id": job_id,
+            "user_id": user_id,
             "content": content,
             "resume_id": resume_id,
             "created_at": now,
         }
 
     async def get_job(self, job_id: str) -> dict[str, Any] | None:
-        """Get job by ID (dynamic fields flattened to top level)."""
+        """Get job by ID, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             row = await session.get(Job, job_id)
+            if row and user_id and row.user_id != user_id:
+                return None
             return self._job_to_dict(row) if row else None
 
-    async def update_job(
-        self, job_id: str, updates: dict[str, Any]
-    ) -> dict[str, Any] | None:
-        """Update a job by ID.
-
-        Core columns are set directly; every other key is merged into
-        ``metadata_json`` so dynamic pipeline fields (``preview_hash``,
-        ``job_keywords``, ``company``/``role``, …) round-trip through
-        ``get_job`` as top-level keys.
-        """
+    async def update_job(self, job_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:
+        """Update a job by ID, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             row = await session.get(Job, job_id)
-            if row is None:
+            if row is None or (user_id and row.user_id != user_id):
                 return None
             meta = dict(row.metadata_json or {})
             for key, value in updates.items():
@@ -403,16 +393,16 @@ class Database:
                     setattr(row, key, value)
                 else:
                     meta[key] = value
-            # Reassign so SQLAlchemy detects the JSON mutation.
             row.metadata_json = meta
             await session.commit()
             return self._job_to_dict(row)
 
     async def delete_job(self, job_id: str) -> bool:
-        """Delete a job by ID (used to clean up an orphaned manual-add job)."""
+        """Delete a job by ID, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             row = await session.get(Job, job_id)
-            if row is None:
+            if row is None or (user_id and row.user_id != user_id):
                 return False
             await session.delete(row)
             await session.commit()
@@ -427,13 +417,15 @@ class Database:
         job_id: str,
         improvements: list[dict[str, Any]],
     ) -> dict[str, Any]:
-        """Create an improvement result entry."""
+        """Create an improvement result entry, scoped to user context."""
         request_id = str(uuid4())
         now = _now()
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             session.add(
                 Improvement(
                     request_id=request_id,
+                    user_id=user_id,
                     original_resume_id=original_resume_id,
                     tailored_resume_id=tailored_resume_id,
                     job_id=job_id,
@@ -444,6 +436,7 @@ class Database:
             await session.commit()
         return {
             "request_id": request_id,
+            "user_id": user_id,
             "original_resume_id": original_resume_id,
             "tailored_resume_id": tailored_resume_id,
             "job_id": job_id,
@@ -454,33 +447,34 @@ class Database:
     async def get_improvement_by_tailored_resume(
         self, tailored_resume_id: str
     ) -> dict[str, Any] | None:
-        """Get improvement record by tailored resume ID."""
+        """Get improvement record by tailored resume ID, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
-            result = await session.execute(
-                select(Improvement).where(
-                    Improvement.tailored_resume_id == tailored_resume_id
-                )
-            )
+            stmt = select(Improvement).where(Improvement.tailored_resume_id == tailored_resume_id)
+            if user_id:
+                stmt = stmt.where(Improvement.user_id == user_id)
+            result = await session.execute(stmt)
             row = result.scalars().first()
             return self._improvement_to_dict(row) if row else None
 
     # -- Application (tracker) operations -----------------------------------
 
     async def _next_position(self, session: AsyncSession, status: str) -> int:
-        result = await session.execute(
-            select(func.count())
-            .select_from(Application)
-            .where(Application.status == status)
-        )
+        user_id = current_user_id_var.get()
+        stmt = select(func.count()).select_from(Application).where(Application.status == status)
+        if user_id:
+            stmt = stmt.where(Application.user_id == user_id)
+        result = await session.execute(stmt)
         return int(result.scalar() or 0)
 
     async def _renumber(self, session: AsyncSession, status: str) -> None:
-        """Renumber a column's positions to a contiguous 0..n-1 sequence."""
-        result = await session.execute(
-            select(Application)
-            .where(Application.status == status)
-            .order_by(Application.position, Application.created_at)
-        )
+        """Renumber a column's positions to a contiguous 0..n-1 sequence, scoped to user."""
+        user_id = current_user_id_var.get()
+        stmt = select(Application).where(Application.status == status)
+        if user_id:
+            stmt = stmt.where(Application.user_id == user_id)
+        stmt = stmt.order_by(Application.position, Application.created_at)
+        result = await session.execute(stmt)
         for index, row in enumerate(result.scalars().all()):
             if row.position != index:
                 row.position = index
@@ -496,17 +490,15 @@ class Database:
         applied_at: str | None = None,
         notes: str | None = None,
     ) -> dict[str, Any]:
-        """Create a tracker card, deduped on (job_id, resume_id).
-
-        If a card for the same job+resume already exists it is returned as-is
-        (survives double-submit / retried confirms).
-        """
+        """Create a tracker card, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
-            existing = await session.execute(
-                select(Application).where(
-                    Application.job_id == job_id, Application.resume_id == resume_id
-                )
+            stmt = select(Application).where(
+                Application.job_id == job_id, Application.resume_id == resume_id
             )
+            if user_id:
+                stmt = stmt.where(Application.user_id == user_id)
+            existing = await session.execute(stmt)
             found = existing.scalars().first()
             if found is not None:
                 return self._application_to_dict(found)
@@ -517,6 +509,7 @@ class Database:
             position = await self._next_position(session, status)
             row = Application(
                 application_id=str(uuid4()),
+                user_id=user_id,
                 job_id=job_id,
                 resume_id=resume_id,
                 master_resume_id=master_resume_id,
@@ -533,54 +526,53 @@ class Database:
             try:
                 await session.commit()
             except IntegrityError:
-                # A concurrent create won the (job_id, resume_id) unique
-                # constraint — return the existing card instead of duplicating.
                 await session.rollback()
-                dup = await session.execute(
-                    select(Application).where(
-                        Application.job_id == job_id,
-                        Application.resume_id == resume_id,
-                    )
+                stmt_dup = select(Application).where(
+                    Application.job_id == job_id,
+                    Application.resume_id == resume_id,
                 )
+                if user_id:
+                    stmt_dup = stmt_dup.where(Application.user_id == user_id)
+                dup = await session.execute(stmt_dup)
                 found = dup.scalars().first()
                 if found is not None:
-                    logger.debug(
-                        "Deduped concurrent application create for job=%s resume=%s",
-                        job_id,
-                        resume_id,
-                    )
                     return self._application_to_dict(found)
                 raise
             return self._application_to_dict(row)
 
     async def list_applications(self, status: str | None = None) -> list[dict[str, Any]]:
-        """List applications ordered by (status, position)."""
+        """List applications, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             stmt = select(Application)
+            conditions = []
             if status is not None:
-                stmt = stmt.where(Application.status == status)
+                conditions.append(Application.status == status)
+            if user_id:
+                conditions.append(Application.user_id == user_id)
+            if conditions:
+                stmt = stmt.where(*conditions)
             stmt = stmt.order_by(Application.status, Application.position)
             result = await session.execute(stmt)
             return [self._application_to_dict(row) for row in result.scalars().all()]
 
     async def get_application(self, application_id: str) -> dict[str, Any] | None:
-        """Get an application by ID."""
+        """Get an application by ID, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             row = await session.get(Application, application_id)
+            if row and user_id and row.user_id != user_id:
+                return None
             return self._application_to_dict(row) if row else None
 
     async def update_application(
         self, application_id: str, updates: dict[str, Any]
     ) -> dict[str, Any] | None:
-        """Update an application; renumber columns when status/position change.
-
-        ``position`` is interpreted as the desired index within the (possibly
-        new) ``status`` column; siblings are renumbered server-side so the
-        column stays a contiguous 0..n-1 sequence.
-        """
+        """Update an application, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             row = await session.get(Application, application_id)
-            if row is None:
+            if row is None or (user_id and row.user_id != user_id):
                 return None
 
             old_status = row.status
@@ -594,20 +586,18 @@ class Database:
             moved = "status" in updates or "position" in updates
             if moved:
                 row.status = new_status
-                # Park it out of the way, renumber both columns, then reinsert.
                 row.position = 10_000_000
                 await session.flush()
                 if old_status != new_status:
                     await self._renumber(session, old_status)
-                # Renumber the target column excluding this row, then splice in.
-                siblings = await session.execute(
-                    select(Application)
-                    .where(
-                        Application.status == new_status,
-                        Application.application_id != application_id,
-                    )
-                    .order_by(Application.position, Application.created_at)
+                
+                stmt = select(Application).where(
+                    Application.status == new_status,
+                    Application.application_id != application_id,
                 )
+                if user_id:
+                    stmt = stmt.where(Application.user_id == user_id)
+                siblings = await session.execute(stmt.order_by(Application.position, Application.created_at))
                 ordered = list(siblings.scalars().all())
                 if target_position is None or target_position > len(ordered):
                     target_position = len(ordered)
@@ -624,17 +614,18 @@ class Database:
     async def bulk_update_applications(
         self, application_ids: list[str], status: str
     ) -> int:
-        """Move many applications to the end of ``status``. Returns count moved."""
+        """Move many applications, scoped to user context."""
         moved = 0
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             affected_old: set[str] = set()
             for application_id in application_ids:
                 row = await session.get(Application, application_id)
-                if row is None:
+                if row is None or (user_id and row.user_id != user_id):
                     continue
                 affected_old.add(row.status)
                 row.status = status
-                row.position = 20_000_000 + moved  # provisional, renumbered below
+                row.position = 20_000_000 + moved
                 row.updated_at = _now()
                 moved += 1
             await session.flush()
@@ -645,10 +636,11 @@ class Database:
         return moved
 
     async def delete_application(self, application_id: str) -> bool:
-        """Delete an application; renumber its column."""
+        """Delete an application, scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             row = await session.get(Application, application_id)
-            if row is None:
+            if row is None or (user_id and row.user_id != user_id):
                 return False
             status = row.status
             await session.delete(row)
@@ -658,13 +650,14 @@ class Database:
             return True
 
     async def bulk_delete_applications(self, application_ids: list[str]) -> int:
-        """Delete many applications; renumber affected columns. Returns count."""
+        """Delete many applications, scoped to user context."""
         deleted = 0
+        user_id = current_user_id_var.get()
         async with self._session() as session:
             affected: set[str] = set()
             for application_id in application_ids:
                 row = await session.get(Application, application_id)
-                if row is None:
+                if row is None or (user_id and row.user_id != user_id):
                     continue
                 affected.add(row.status)
                 await session.delete(row)
@@ -678,18 +671,20 @@ class Database:
     # -- Encrypted API key store (sync; read on the LLM hot path) -----------
 
     def get_api_key_ciphertexts(self) -> dict[str, str]:
-        """Return ``{provider: ciphertext}`` for all stored keys (sync)."""
+        """Return ``{provider: ciphertext}`` for all stored keys scoped to the user (sync)."""
+        user_id = current_user_id_var.get() or "default"
         with self._sync() as session:
-            rows = session.execute(select(ApiKey)).scalars().all()
+            rows = session.execute(select(ApiKey).where(ApiKey.user_id == user_id)).scalars().all()
             return {row.provider: row.ciphertext for row in rows}
 
     def set_api_key_ciphertext(self, provider: str, ciphertext: str) -> None:
-        """Upsert one provider's ciphertext (sync)."""
+        """Upsert one provider's ciphertext scoped to the user (sync)."""
+        user_id = current_user_id_var.get() or "default"
         with self._sync() as session:
-            row = session.get(ApiKey, provider)
+            row = session.get(ApiKey, (provider, user_id))
             if row is None:
                 session.add(
-                    ApiKey(provider=provider, ciphertext=ciphertext, updated_at=_now())
+                    ApiKey(provider=provider, user_id=user_id, ciphertext=ciphertext, updated_at=_now())
                 )
             else:
                 row.ciphertext = ciphertext
@@ -697,48 +692,56 @@ class Database:
             session.commit()
 
     def delete_api_key(self, provider: str) -> None:
-        """Delete one provider's key (sync)."""
+        """Delete one provider's key scoped to the user (sync)."""
+        user_id = current_user_id_var.get() or "default"
         with self._sync() as session:
-            row = session.get(ApiKey, provider)
+            row = session.get(ApiKey, (provider, user_id))
             if row is not None:
                 session.delete(row)
                 session.commit()
 
     def clear_api_keys(self) -> None:
-        """Delete all stored keys (sync)."""
+        """Delete all stored keys scoped to the user (sync)."""
+        user_id = current_user_id_var.get() or "default"
         with self._sync() as session:
-            session.execute(delete(ApiKey))
+            session.execute(delete(ApiKey).where(ApiKey.user_id == user_id))
             session.commit()
 
     def replace_api_keys(self, ciphertexts: dict[str, str]) -> None:
-        """Atomically replace the whole key store (clear + insert in one txn).
-
-        A single transaction means a failure mid-write can't leave the store
-        half-cleared and wipe a user's previously saved keys.
-        """
+        """Atomically replace the key store scoped to the user (sync)."""
+        user_id = current_user_id_var.get() or "default"
         with self._sync() as session:
-            session.execute(delete(ApiKey))
+            session.execute(delete(ApiKey).where(ApiKey.user_id == user_id))
             now = _now()
             for provider, ciphertext in ciphertexts.items():
                 if ciphertext:
                     session.add(
-                        ApiKey(provider=provider, ciphertext=ciphertext, updated_at=now)
+                        ApiKey(provider=provider, user_id=user_id, ciphertext=ciphertext, updated_at=now)
                     )
             session.commit()
 
     # -- Stats / maintenance ------------------------------------------------
 
     async def get_stats(self) -> dict[str, Any]:
-        """Get database statistics."""
+        """Get database statistics scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
-            resumes = await session.scalar(select(func.count()).select_from(Resume))
-            jobs = await session.scalar(select(func.count()).select_from(Job))
-            improvements = await session.scalar(
-                select(func.count()).select_from(Improvement)
-            )
-            master = await session.execute(
-                select(Resume.resume_id).where(Resume.is_master.is_(True)).limit(1)
-            )
+            stmt_resumes = select(func.count()).select_from(Resume)
+            stmt_jobs = select(func.count()).select_from(Job)
+            stmt_improvements = select(func.count()).select_from(Improvement)
+            stmt_master = select(Resume.resume_id).where(Resume.is_master.is_(True)).limit(1)
+
+            if user_id:
+                stmt_resumes = stmt_resumes.where(Resume.user_id == user_id)
+                stmt_jobs = stmt_jobs.where(Job.user_id == user_id)
+                stmt_improvements = stmt_improvements.where(Improvement.user_id == user_id)
+                stmt_master = stmt_master.where(Resume.user_id == user_id)
+
+            resumes = await session.scalar(stmt_resumes)
+            jobs = await session.scalar(stmt_jobs)
+            improvements = await session.scalar(stmt_improvements)
+            master = await session.execute(stmt_master)
+
             return {
                 "total_resumes": int(resumes or 0),
                 "total_jobs": int(jobs or 0),
@@ -747,25 +750,33 @@ class Database:
             }
 
     async def reset_database(self) -> None:
-        """Reset by truncating user-document tables and clearing uploads.
-
-        Clears resumes/jobs/improvements **and** tracker applications (leaving
-        orphaned cards after a full data reset would be a bug). Encrypted
-        ``api_keys`` are preserved — matching the pre-existing behavior where a
-        reset never wiped the user's stored credentials.
-        """
+        """Reset by truncating tables scoped to user context."""
+        user_id = current_user_id_var.get()
         async with self._session() as session:
-            await session.execute(delete(Application))
-            await session.execute(delete(Improvement))
-            await session.execute(delete(Job))
-            await session.execute(delete(Resume))
+            stmt_app = delete(Application)
+            stmt_imp = delete(Improvement)
+            stmt_job = delete(Job)
+            stmt_res = delete(Resume)
+
+            if user_id:
+                stmt_app = stmt_app.where(Application.user_id == user_id)
+                stmt_imp = stmt_imp.where(Improvement.user_id == user_id)
+                stmt_job = stmt_job.where(Job.user_id == user_id)
+                stmt_res = stmt_res.where(Resume.user_id == user_id)
+
+            await session.execute(stmt_app)
+            await session.execute(stmt_imp)
+            await session.execute(stmt_job)
+            await session.execute(stmt_res)
             await session.commit()
 
-        uploads_dir = settings.data_dir / "uploads"
-        if uploads_dir.exists():
-            shutil.rmtree(uploads_dir)
-            uploads_dir.mkdir(parents=True, exist_ok=True)
+        # Scoped reset doesn't delete filesystem uploads globally if not SQLite,
+        # but for local testing:
+        if not self.database_url:
+            uploads_dir = settings.data_dir / "uploads"
+            if uploads_dir.exists():
+                shutil.rmtree(uploads_dir)
+                uploads_dir.mkdir(parents=True, exist_ok=True)
 
 
-# Global database instance
 db = Database()

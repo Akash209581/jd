@@ -47,85 +47,77 @@ const iconHitArea = "before:absolute before:-inset-1.5 before:content-['']";
 
 // Variant styles - each has distinct purpose and color
 const variants = {
-  // PRIMARY - Hyper Blue (#1D4ED8 / blue-700)
-  // Use for: Save, Submit, Create, Primary CTA
+  // PRIMARY - Violet to Indigo Gradient
   default: cn(
-    'bg-blue-700 text-white',
-    'border border-black',
-    'shadow-sw-sm',
-    'hover:bg-blue-800',
-    'hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none',
-    'active:translate-y-[2px] active:translate-x-[2px]'
+    'bg-gradient-to-r from-violet-600 to-indigo-600 text-white',
+    'border border-zinc-700/50',
+    'shadow-lg shadow-violet-500/10',
+    'hover:from-violet-500 hover:to-indigo-500',
+    'hover:-translate-y-[1px] hover:shadow-xl hover:shadow-violet-500/20',
+    'active:translate-y-0 active:scale-[0.98]'
   ),
 
-  // DESTRUCTIVE - Alert Red (#DC2626 / red-600)
-  // Use for: Delete, Remove, Destroy, Dangerous actions
+  // DESTRUCTIVE - Red Gradient
   destructive: cn(
-    'bg-red-600 text-white',
-    'border border-black',
-    'shadow-sw-sm',
-    'hover:bg-red-700',
-    'hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none',
-    'active:translate-y-[2px] active:translate-x-[2px]'
+    'bg-gradient-to-r from-red-600 to-rose-600 text-white',
+    'border border-zinc-700/50',
+    'shadow-lg shadow-red-500/10',
+    'hover:from-red-500 hover:to-rose-500',
+    'hover:-translate-y-[1px] hover:shadow-xl hover:shadow-red-500/20',
+    'active:translate-y-0 active:scale-[0.98]'
   ),
 
-  // SUCCESS - Signal Green (#15803D / green-700)
-  // Use for: Download, Confirm, Complete, Positive actions
+  // SUCCESS - Emerald Gradient
   success: cn(
-    'bg-green-700 text-white',
-    'border border-black',
-    'shadow-sw-sm',
-    'hover:bg-green-800',
-    'hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none',
-    'active:translate-y-[2px] active:translate-x-[2px]'
+    'bg-gradient-to-r from-emerald-600 to-teal-600 text-white',
+    'border border-zinc-700/50',
+    'shadow-lg shadow-emerald-500/10',
+    'hover:from-emerald-500 hover:to-teal-500',
+    'hover:-translate-y-[1px] hover:shadow-xl hover:shadow-emerald-500/20',
+    'active:translate-y-0 active:scale-[0.98]'
   ),
 
-  // WARNING - Alert Orange (#F97316 / orange-500)
-  // Use for: Reset, Clear, Undo, Caution actions
+  // WARNING - Amber Gradient
   warning: cn(
-    'bg-orange-500 text-white',
-    'border border-black',
-    'shadow-sw-sm',
-    'hover:bg-orange-600',
-    'hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none',
-    'active:translate-y-[2px] active:translate-x-[2px]'
+    'bg-gradient-to-r from-amber-600 to-orange-500 text-white',
+    'border border-zinc-700/50',
+    'shadow-lg shadow-amber-500/10',
+    'hover:from-amber-500 hover:to-orange-400',
+    'hover:-translate-y-[1px] hover:shadow-xl hover:shadow-amber-500/20',
+    'active:translate-y-0 active:scale-[0.98]'
   ),
 
-  // OUTLINE - Canvas background with black border
-  // Use for: Cancel, Back, Secondary actions, Navigation
+  // OUTLINE - Zinc-900 canvas background with border
   outline: cn(
-    'bg-background text-black',
-    'border border-black',
-    'shadow-sw-sm',
-    'hover:bg-secondary',
-    'hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none',
-    'active:translate-y-[2px] active:translate-x-[2px]'
+    'bg-zinc-900 text-zinc-100',
+    'border border-zinc-800',
+    'shadow-sm',
+    'hover:bg-zinc-800 hover:text-white',
+    'hover:-translate-y-[1px]',
+    'active:translate-y-0 active:scale-[0.98]'
   ),
 
-  // SECONDARY - Panel Grey (#E5E5E0)
-  // Use for: Less prominent actions, Toolbar buttons
+  // SECONDARY - Zinc-800 Grey
   secondary: cn(
-    'bg-secondary text-black',
-    'border border-black',
-    'shadow-sw-sm',
-    'hover:bg-[#D8D8D2]',
-    'hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none',
-    'active:translate-y-[2px] active:translate-x-[2px]'
+    'bg-zinc-800 text-zinc-100',
+    'border border-zinc-700/50',
+    'shadow-sm',
+    'hover:bg-zinc-700 hover:text-white',
+    'hover:-translate-y-[1px]',
+    'active:translate-y-0 active:scale-[0.98]'
   ),
 
   // GHOST - No background, minimal styling
-  // Use for: Icon buttons, Subtle navigation, Toolbars
   ghost: cn(
-    'bg-transparent text-black',
+    'bg-transparent text-zinc-400 hover:text-white',
     'border-none shadow-none',
-    'hover:bg-paper-tint',
-    'active:bg-paper-tint'
+    'hover:bg-zinc-800',
+    'active:bg-zinc-800'
   ),
 
   // LINK - Text only with underline
-  // Use for: Inline links, Text navigation
   link: cn(
-    'bg-transparent text-blue-700',
+    'bg-transparent text-violet-400 hover:text-violet-300',
     'border-none shadow-none',
     'underline-offset-4 hover:underline',
     'p-0 h-auto'
@@ -148,16 +140,15 @@ const baseStyles = cn(
   'relative inline-flex items-center justify-center gap-2',
   'whitespace-nowrap text-sm font-medium font-mono uppercase tracking-wide',
   // Transitions — only the properties that actually change on hover/active.
-  // Avoids the perf footgun of `transition-all` and matches Swiss "snap" feel.
-  'transition-[transform,box-shadow,background-color] duration-100 ease-out',
-  // Focus state - sharp blue ring (not soft glow)
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2',
+  'transition-all duration-200 ease-out',
+  // Focus state - sharp violet ring
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2',
   // Disabled state
   'disabled:pointer-events-none disabled:opacity-50',
   // SVG icon sizing
   "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0",
-  // Swiss Design: NO rounded corners
-  'rounded-none'
+  // CareerOS: rounded-xl corners
+  'rounded-xl'
 );
 
 export function getButtonClass(

@@ -32,11 +32,25 @@
     "databaseReset": "Base de datos restablecida con éxito",
     "popupBlocked": "Se bloqueó la ventana emergente. Permite las ventanas emergentes o abre manualmente esta URL: {url}"
   },
+  "auth": {
+    "welcomeBack": "Bienvenido de nuevo",
+    "loginSubtitle": "Accede a tu panel de control",
+    "createAccount": "Crear una cuenta",
+    "signupSubtitle": "Registra tus credenciales",
+    "email": "Dirección de correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "signIn": "Iniciar sesión",
+    "signUp": "Crear cuenta",
+    "submitting": "Procesando...",
+    "noAccount": "¿No tienes una cuenta? Regístrate",
+    "hasAccount": "¿Ya tienes una cuenta? Iniciar sesión"
+  },
   "home": {
-    "brandLine1": "Currículum",
-    "brandLine2": "Matcher",
-    "docs": "Guía de uso",
-    "launchApp": "Iniciar app"
+    "brandLine1": "Career",
+    "brandLine2": "OS",
+    "docs": "Docs",
+    "launchApp": "Launch App"
   },
   "nav": {
     "dashboard": "Panel",
@@ -342,7 +356,7 @@
           "website": "Sitio web"
         },
         "placeholders": {
-          "projectName": "Resume Matcher",
+          "projectName": "CareerOS",
           "role": "Creador",
           "years": "Mar 2023",
           "github": "github.com/usuario/proyecto",
@@ -928,7 +942,7 @@
       "upload": {
         "kicker": "Archivo existente",
         "title": "Subir un currículum",
-        "description": "Empieza con un archivo PDF, DOC o DOCX y deja que Resume Matcher lo convierta en tu perfil maestro.",
+        "description": "Empieza con un archivo PDF, DOC o DOCX y deja que CareerOS lo convierta en tu perfil maestro.",
         "action": "Subir currículum"
       },
       "wizard": {

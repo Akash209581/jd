@@ -66,15 +66,34 @@ export async function apiFetch(
     url = resolveRuntimeApiBase(normalizedEndpoint);
   }
 
-  // Defaults to DEFAULT_TIMEOUT_MS, which tracks the backend's
-  // REQUEST_TIMEOUT_SECONDS (see next.config.ts proxyTimeout — all three layers
-  // must agree or the shortest aborts first).
+  // Inject Bearer Token
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const headers = new Headers(options?.headers);
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   const timeout = timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
 
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    const response = await fetch(url, { ...options, headers, signal: controller.signal });
+    
+    // Intercept 401 Unauthorized errors and redirect to login (unless we're trying to authenticate)
+    if (
+      response.status === 401 &&
+      typeof window !== 'undefined' &&
+      !url.includes('/auth/login') &&
+      !url.includes('/auth/signup')
+    ) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user_email');
+      localStorage.removeItem('user_id');
+      window.location.href = '/login';
+    }
+    
+    return response;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error(

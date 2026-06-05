@@ -84,7 +84,7 @@ export function Dropdown({
           aria-controls={isOpen ? menuId : undefined}
           aria-label={label}
           suppressHydrationWarning
-          className="w-full flex items-center justify-between border border-black bg-white px-4 py-3 font-mono text-sm transition-all duration-150 ease-out shadow-sw-sm hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] disabled:opacity-50 disabled:cursor-not-allowed rounded-none"
+          className="w-full flex items-center justify-between border border-zinc-800 bg-zinc-900/90 text-zinc-100 px-4 py-3 font-mono text-sm transition-all duration-200 shadow-sm hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
         >
           <div className="flex-1 text-left min-w-0">
             {selectedOption ? (
@@ -119,7 +119,7 @@ export function Dropdown({
             id={menuId}
             role="menu"
             aria-label={label}
-            className="absolute top-full left-0 right-0 mt-1 z-50 border border-black bg-white shadow-sw-default rounded-none"
+            className="absolute top-full left-0 right-0 mt-1.5 z-50 border border-zinc-800 bg-zinc-900 shadow-xl rounded-xl overflow-hidden"
           >
             <div className="max-h-64 overflow-y-auto">
               {options.map((option, index) => (
@@ -129,11 +129,11 @@ export function Dropdown({
                     aria-checked={option.id === value}
                     onClick={() => handleSelect(option.id)}
                     suppressHydrationWarning
-                    className={`w-full px-4 py-3 text-left font-mono transition-colors duration-150 border border-black ${
+                    className={`w-full px-4 py-3 text-left font-mono transition-colors duration-150 border border-zinc-800/30 ${
                       option.id === value
-                        ? 'bg-green-700 text-white'
-                        : 'bg-white text-black hover:bg-paper-tint'
-                    } ${index > 0 ? '-mt-[1px]' : ''} active:bg-paper-tint`}
+                        ? 'bg-violet-600 text-white'
+                        : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                    } ${index > 0 ? '-mt-[1px]' : ''} active:bg-zinc-850`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">

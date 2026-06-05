@@ -1,4 +1,4 @@
-"""Shared test fixtures for Resume Matcher backend tests."""
+"""Shared test fixtures for CareerOS backend tests."""
 
 import copy
 import importlib
@@ -197,6 +197,11 @@ async def isolated_db(tmp_path, monkeypatch):
     """
     import app.database as database_module
     from app.database import Database
+    from app.config import settings
+
+    # Temporarily force SQLite for isolated tests by clearing database_url
+    orig_database_url = settings.database_url
+    settings.database_url = None
 
     test_db = Database(db_path=tmp_path / "isolated_db.db")
     monkeypatch.setattr(database_module, "db", test_db)
@@ -218,4 +223,5 @@ async def isolated_db(tmp_path, monkeypatch):
     try:
         yield test_db
     finally:
+        settings.database_url = orig_database_url
         await test_db.close()

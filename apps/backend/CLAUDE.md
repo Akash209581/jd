@@ -1,6 +1,6 @@
 # CLAUDE.md - Backend (`apps/backend`)
 
-> FastAPI backend for Resume Matcher. This file goes **deeper on the backend**.
+> FastAPI backend for CareerOS. This file goes **deeper on the backend**.
 > For project-wide context see the root [`.claude/CLAUDE.md`](../../.claude/CLAUDE.md) and [`docs/agent/README.md`](../../docs/agent/README.md).
 
 Stack: FastAPI 0.128 · Python **3.13+** · Pydantic v2 / pydantic-settings · SQLAlchemy 2 (async) + SQLite (`aiosqlite`) · LiteLLM (multi-provider AI) · markitdown (DOCX/PDF→Markdown) · Playwright/Chromium (PDF). Managed with **uv** (`pyproject.toml`, version `1.2.0`).
@@ -24,7 +24,7 @@ Stack: FastAPI 0.128 · Python **3.13+** · Pydantic v2 / pydantic-settings · S
 | Prompts | All LLM prompt templates + placeholder validation | `app/prompts/*.py` |
 | Schemas | Pydantic request/response + `ResumeData` models | `app/schemas/*.py` |
 
-`data/` holds `resume_matcher.db` (SQLite; primary store), `config.json` (non-secret config), `.secret_key` (Fernet secret for encrypted API keys), an `uploads/` dir, and possibly a legacy `database.json` (TinyDB — imported into SQLite on first startup, then renamed `database.json.migrated`). `.gitignore` ignores `*.db*`, `data/*.json`, and `data/.secret_key` (DB + config + secret never get committed), but **`uploads/` is NOT git-ignored** — don't commit user uploads. `db.reset_database()` truncates the document tables + `applications` (preserving `api_keys`) and wipes `uploads/`.
+`data/` holds `careeros.db` (SQLite; primary store), `config.json` (non-secret config), `.secret_key` (Fernet secret for encrypted API keys), an `uploads/` dir, and possibly a legacy `database.json` (TinyDB — imported into SQLite on first startup, then renamed `database.json.migrated`). `.gitignore` ignores `*.db*`, `data/*.json`, and `data/.secret_key` (DB + config + secret never get committed), but **`uploads/` is NOT git-ignored** — don't commit user uploads. `db.reset_database()` truncates the document tables + `applications` (preserving `api_keys`) and wipes `uploads/`.
 
 ### Routers (all prefixed `/api/v1`)
 - `health.py` — `GET /health` (liveness, no LLM call), `GET /status` (LLM health + DB stats).

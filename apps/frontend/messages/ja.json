@@ -32,10 +32,24 @@
     "databaseReset": "データベースが正常にリセットされました",
     "popupBlocked": "ポップアップがブロックされました。ポップアップを許可するか、次のURLを手動で開いてください: {url}"
   },
+  "auth": {
+    "welcomeBack": "おかえりなさい",
+    "loginSubtitle": "コントロールパネルへのアクセス",
+    "createAccount": "アカウント作成",
+    "signupSubtitle": "認証情報の登録",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "confirmPassword": "パスワードの確認",
+    "signIn": "サインイン",
+    "signUp": "アカウント作成",
+    "submitting": "処理中...",
+    "noAccount": "アカウントをお持ちでないですか？ 新規登録",
+    "hasAccount": "既にアカウントをお持ちですか？ ログイン"
+  },
   "home": {
-    "brandLine1": "履歴書",
-    "brandLine2": "マッチャー",
-    "docs": "利用ドキュメント",
+    "brandLine1": "Career",
+    "brandLine2": "OS",
+    "docs": "ドキュメント",
     "launchApp": "アプリを起動"
   },
   "nav": {
@@ -342,7 +356,7 @@
           "website": "Webサイト"
         },
         "placeholders": {
-          "projectName": "Resume Matcher",
+          "projectName": "CareerOS",
           "role": "作成者",
           "years": "2023年3月",
           "github": "github.com/username/project",
@@ -928,7 +942,7 @@
       "upload": {
         "kicker": "既存ファイル",
         "title": "履歴書をアップロード",
-        "description": "PDF、DOC、DOCX ファイルから始め、Resume Matcher にマスタープロフィールへ解析させます。",
+        "description": "PDF、DOC、DOCX ファイルから始め、CareerOS にマスタープロフィールへ解析させます。",
         "action": "履歴書をアップロード"
       },
       "wizard": {

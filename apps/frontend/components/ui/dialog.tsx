@@ -146,9 +146,9 @@ const DialogContent: React.FC<DialogContentProps> = ({ children, className }) =>
           aria-modal="true"
           aria-labelledby={titleId}
           className={cn(
-            'relative w-full max-w-lg',
-            'border border-black bg-background shadow-sw-lg',
-            'rounded-none',
+            'relative w-full max-w-lg p-6 md:p-8',
+            'border border-zinc-800 bg-zinc-900 shadow-2xl',
+            'rounded-2xl',
             'animate-in fade-in-0 zoom-in-95 duration-200',
             className
           )}
@@ -157,7 +157,7 @@ const DialogContent: React.FC<DialogContentProps> = ({ children, className }) =>
           {children}
           <button
             onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-offset-2"
+            className="absolute right-4 top-4 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
           >
             <X className="h-5 w-5" />
             <span className="sr-only">{t('common.close')}</span>

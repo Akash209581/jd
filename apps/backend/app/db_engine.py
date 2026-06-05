@@ -1,13 +1,7 @@
-"""SQLite engine/session plumbing for the SQLAlchemy data layer.
-
-Every ``Database`` instance owns its own engines (one async for the document
-tables, one sync for the encrypted ``api_keys`` table read on the synchronous
-LLM hot path) built from these factories. Keeping construction here lets tests
-spin up fully isolated engines against a temp-file database.
-"""
+"""SQLite and PostgreSQL engine/session plumbing for the SQLAlchemy data layer."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
@@ -19,13 +13,7 @@ __all__ = ["Base", "make_async_engine", "make_sync_engine", "init_models_sync"]
 
 
 def _apply_sqlite_pragmas(dbapi_connection: Any, _connection_record: Any) -> None:
-    """Set per-connection SQLite PRAGMAs.
-
-    WAL improves concurrent read/write between the async (doc tables) and sync
-    (api_keys) engines pointed at the same file; ``busy_timeout`` rides out the
-    brief lock contention that creates; ``foreign_keys`` enforces relational
-    integrity (off by default in SQLite).
-    """
+    """Set per-connection SQLite PRAGMAs."""
     cursor = dbapi_connection.cursor()
     try:
         cursor.execute("PRAGMA journal_mode=WAL")
@@ -35,27 +23,60 @@ def _apply_sqlite_pragmas(dbapi_connection: Any, _connection_record: Any) -> Non
         cursor.close()
 
 
-def _url(path: Path, *, driver: str) -> str:
-    """Build a SQLite URL. Absolute paths yield the required four slashes."""
-    return f"sqlite+{driver}:///{path}" if driver else f"sqlite:///{path}"
+def _resolve_url(target: Union[Path, str], *, driver: str) -> str:
+    """Resolve the connection URL string.
+
+    If target is a Path, returns sqlite connection string.
+    If target is a connection string, resolves driver name.
+    """
+    if isinstance(target, Path):
+        return f"sqlite+{driver}:///{target}" if driver else f"sqlite:///{target}"
+    
+    url = str(target)
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+        
+    if driver == "asyncpg":
+        if "postgresql://" in url and "+asyncpg" not in url:
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            
+    return url
 
 
-def make_async_engine(path: Path) -> AsyncEngine:
-    """Create the async engine (``aiosqlite``) for the document tables."""
-    engine = create_async_engine(_url(path, driver="aiosqlite"), future=True)
-    event.listen(engine.sync_engine, "connect", _apply_sqlite_pragmas)
+def make_async_engine(target: Union[Path, str]) -> AsyncEngine:
+    """Create the async engine for the document tables."""
+    is_sqlite = isinstance(target, Path) or "sqlite" in str(target)
+    driver = "aiosqlite" if is_sqlite else "asyncpg"
+    url = _resolve_url(target, driver=driver)
+    
+    connect_args = {}
+    if not is_sqlite:
+        if "?" in url:
+            url = url.split("?")[0]
+        connect_args = {"ssl": True}
+        
+    engine = create_async_engine(url, connect_args=connect_args, future=True)
+    if is_sqlite:
+        event.listen(engine.sync_engine, "connect", _apply_sqlite_pragmas)
     return engine
 
 
-def make_sync_engine(path: Path) -> Engine:
-    """Create the sync engine used for the encrypted api_keys table.
+def make_sync_engine(target: Union[Path, str]) -> Engine:
+    """Create the sync engine used for key management and schema creation."""
+    is_sqlite = isinstance(target, Path) or "sqlite" in str(target)
+    url = _resolve_url(target, driver="")
 
-    Key reads happen synchronously (``get_llm_config`` → ``load_config_file`` →
-    ``resolve_api_key``), so a sync engine avoids threading async through
-    ``llm.py``. It points at the same file as the async engine.
-    """
-    engine = create_engine(_url(path, driver=""), future=True)
-    event.listen(engine, "connect", _apply_sqlite_pragmas)
+    connect_args: dict = {}
+    if not is_sqlite:
+        # psycopg2 does not accept channel_binding or sslmode in the URL string
+        # when using SQLAlchemy — strip all query params and pass ssl via connect_args.
+        if "?" in url:
+            url = url.split("?")[0]
+        connect_args = {"sslmode": "require"}
+
+    engine = create_engine(url, connect_args=connect_args, future=True)
+    if is_sqlite:
+        event.listen(engine, "connect", _apply_sqlite_pragmas)
     return engine
 
 

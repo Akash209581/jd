@@ -4,8 +4,6 @@
 @source "../../../{app,components,hooks,lib,messages}/**/*.{js,ts,jsx,tsx,mdx}";
 
 @theme inline {
-  /* No --radius-* tokens — Swiss style commits to rounded-none everywhere.
-     Dead tokens removed. */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -38,123 +36,267 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Swiss Style brand tokens. --color-primary, --color-destructive,
-     --color-secondary, --color-background already exist above via the
-     legacy var(--xxx) chain — these are only the additional brand
-     semantics that didn't exist as @theme tokens before. */
-  --color-canvas: #f0f0e8;
-  --color-ink: #000000;
-  --color-success: #15803d;
-  --color-warning: #f97316;
+  /* Aurora palette tokens */
+  --color-canvas:      #0a0e1a;
+  --color-ink:         #f0f4ff;
+  --color-success:     #34d399;
+  --color-warning:     #fbbf24;
+  --color-paper-tint:  oklch(22% 0.035 248);
+  --color-steel-grey:  oklch(68% 0.022 248);
+  --color-ink-soft:    oklch(88% 0.018 248);
 
-  /* Brand-tinted neutrals (OKLCH, chroma tinted ~0.005-0.018 toward
-     Hyper Blue hue 264) — replace ad-hoc Tailwind grays. */
-  --color-paper-tint: oklch(96% 0.005 264); /* replaces gray-50/100/200 */
-  --color-steel-grey: oklch(64% 0.012 264); /* replaces gray-300/400/500 */
-  --color-ink-soft: oklch(38% 0.018 264); /* replaces gray-600/700/800/900 */
+  /* Indigo-tinted elevation shadows */
+  --shadow-sw-xs:      0 1px 2px 0 rgba(79, 70, 229, 0.06);
+  --shadow-sw-sm:      0 1px 3px 0 rgba(79, 70, 229, 0.10), 0 1px 2px -1px rgba(79, 70, 229, 0.08);
+  --shadow-sw-default: 0 4px 6px -1px rgba(79, 70, 229, 0.12), 0 2px 4px -2px rgba(79, 70, 229, 0.08);
+  --shadow-sw-card:    0 10px 30px -4px rgba(79, 70, 229, 0.15), 0 4px 8px -4px rgba(99, 102, 241, 0.10);
+  --shadow-sw-lg:      0 20px 40px -8px rgba(79, 70, 229, 0.20), 0 8px 16px -6px rgba(139, 92, 246, 0.12);
+  --shadow-sw-xl:      0 30px 60px -12px rgba(79, 70, 229, 0.30);
 
-  /* Hard offset shadows in solid ink — Swiss style commits to no blur.
-     Sized small (1px) through xl (12px) for Hero/featured surfaces. */
-  --shadow-sw-xs: 1px 1px 0px 0px #000000;
-  --shadow-sw-sm: 2px 2px 0px 0px #000000;
-  --shadow-sw-default: 4px 4px 0px 0px #000000;
-  --shadow-sw-card: 6px 6px 0px 0px #000000;
-  --shadow-sw-lg: 8px 8px 0px 0px #000000;
-  --shadow-sw-xl: 12px 12px 0px 0px #000000;
-
-  /* Fonts */
   --font-sans: 'Geist Sans', sans-serif;
   --font-mono: 'Space Grotesk', monospace;
 
-  /* Animations */
-  --animate-gradient: gradient 8s linear infinite;
-
-  @keyframes gradient {
-    to {
-      background-position: 200% center;
-    }
+  /* ── Animated background keyframes ── */
+  @keyframes aurora-blob-1 {
+    0%   { transform: translate(0%,   0%)   scale(1);    opacity: 0.55; }
+    25%  { transform: translate(6%, -10%)   scale(1.10); opacity: 0.70; }
+    50%  { transform: translate(12%,  4%)   scale(1.05); opacity: 0.60; }
+    75%  { transform: translate(-4%, 10%)   scale(0.95); opacity: 0.50; }
+    100% { transform: translate(0%,   0%)   scale(1);    opacity: 0.55; }
   }
+  @keyframes aurora-blob-2 {
+    0%   { transform: translate(0%,    0%)  scale(1);    opacity: 0.45; }
+    33%  { transform: translate(-8%,   6%)  scale(1.08); opacity: 0.65; }
+    66%  { transform: translate(5%,  -8%)   scale(0.92); opacity: 0.40; }
+    100% { transform: translate(0%,    0%)  scale(1);    opacity: 0.45; }
+  }
+  @keyframes aurora-blob-3 {
+    0%   { transform: translate(0%,   0%)   scale(1);    opacity: 0.35; }
+    50%  { transform: translate(10%,  8%)   scale(1.15); opacity: 0.55; }
+    100% { transform: translate(0%,   0%)   scale(1);    opacity: 0.35; }
+  }
+  @keyframes grid-drift {
+    0%   { transform: translate(0px,   0px); }
+    50%  { transform: translate(30px, 20px); }
+    100% { transform: translate(0px,   0px); }
+  }
+  @keyframes gradient-pan {
+    0%, 100% { background-position: 0% 50%;   }
+    50%       { background-position: 100% 50%; }
+  }
+  @keyframes float-slow {
+    0%, 100% { transform: translateY(0px);   }
+    50%       { transform: translateY(-10px); }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position:  200% 0; }
+  }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg);   }
+    to   { transform: rotate(360deg); }
+  }
+
+  --animate-aurora-1:    aurora-blob-1 20s ease-in-out infinite;
+  --animate-aurora-2:    aurora-blob-2 26s ease-in-out infinite;
+  --animate-aurora-3:    aurora-blob-3 32s ease-in-out infinite;
+  --animate-grid-drift:  grid-drift    40s ease-in-out infinite;
+  --animate-gradient:    gradient-pan   8s ease infinite;
+  --animate-float:       float-slow     6s ease-in-out infinite;
+  --animate-shimmer:     shimmer        2s linear infinite;
+  --animate-spin-slow:   spin-slow     20s linear infinite;
 }
 
 :root {
   --font-mono: 'Geist Mono', monospace;
   --font-sans: 'Geist', sans-serif;
 
-  /* Swiss International Style Palette */
-  --background: #f0f0e8; /* Canvas */
-  --foreground: #000000; /* Ink */
+  /* ── Aurora Midnight Palette ─────────────────────────────────
+     Background: deep navy #0a0e1a
+     Surfaces:   translucent indigo-tinted glass panels
+     Primary:    electric indigo #6366f1
+     Accent:     cyan #22d3ee + violet #a78bfa
+  ────────────────────────────────────────────────────────────── */
+  --background:             #0a0e1a;
+  --foreground:             #e8eeff;
 
-  --card: #f0f0e8;
-  --card-foreground: #000000;
+  --card:                   rgba(15, 22, 45, 0.65);
+  --card-foreground:        #e8eeff;
 
-  --popover: #f0f0e8;
-  --popover-foreground: #000000;
+  --popover:                rgba(11, 17, 38, 0.96);
+  --popover-foreground:     #e8eeff;
 
-  --primary: #1d4ed8; /* Hyper Blue */
-  --primary-foreground: #ffffff;
+  --primary:                #6366f1;
+  --primary-foreground:     #ffffff;
 
-  --secondary: #e5e5e0; /* Panel Grey */
-  --secondary-foreground: #000000;
+  --secondary:              rgba(99, 102, 241, 0.14);
+  --secondary-foreground:   #c7d2fe;
 
-  --muted: #e5e5e0;
-  --muted-foreground: #6b7280;
+  --muted:                  rgba(99, 102, 241, 0.08);
+  --muted-foreground:       #8b9cc8;
 
-  --accent: #e5e5e0;
-  --accent-foreground: #000000;
+  --accent:                 rgba(34, 211, 238, 0.14);
+  --accent-foreground:      #a5f3fc;
 
-  --destructive: #dc2626; /* Alert Red */
+  --destructive:            #f43f5e;
   --destructive-foreground: #ffffff;
 
-  --border: #000000;
-  --input: #f0f0e8;
-  --ring: #1d4ed8;
+  --border:                 rgba(99, 102, 241, 0.20);
+  --input:                  rgba(15, 22, 45, 0.55);
+  --ring:                   #818cf8;
 
-  --chart-1: #1d4ed8;
-  --chart-2: #15803d;
-  --chart-3: #f97316;
-  --chart-4: #dc2626;
-  --chart-5: #000000;
+  --chart-1: #6366f1;
+  --chart-2: #22d3ee;
+  --chart-3: #a78bfa;
+  --chart-4: #34d399;
+  --chart-5: #f472b6;
 
-  --sidebar: #e5e5e0;
-  --sidebar-foreground: #000000;
-  --sidebar-primary: #1d4ed8;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #d8d8d2;
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: #000000;
-  --sidebar-ring: #1d4ed8;
+  --sidebar:                   rgba(8, 12, 26, 0.92);
+  --sidebar-foreground:        #e8eeff;
+  --sidebar-primary:           #6366f1;
+  --sidebar-primary-foreground:#ffffff;
+  --sidebar-accent:            rgba(99, 102, 241, 0.12);
+  --sidebar-accent-foreground: #c7d2fe;
+  --sidebar-border:            rgba(99, 102, 241, 0.15);
+  --sidebar-ring:              #818cf8;
 }
-
-/* Light theme only — Swiss/Brutalist works on the warm Canvas background.
-   The half-finished dark mode mapping was removed; .impeccable.md commits
-   to light only. */
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
+
+  html, body {
     @apply bg-background text-foreground;
+    background-color: #0a0e1a;
+    min-height: 100vh;
   }
-  /* The global `button { font-family: var(--font-mono) }` rule was removed.
-     The Button component applies font-mono via its Tailwind classes, and the
-     global rule was leaking into nested text inside <button> elements. */
+
+  /* ── Floating aurora orbs (layer behind everything) ── */
+  .aurora-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .aurora-bg::before,
+  .aurora-bg::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    will-change: transform, opacity;
+  }
+
+  /* Orb 1 – large indigo, top-left */
+  .aurora-bg::before {
+    width: 70vw;
+    height: 70vw;
+    max-width: 900px;
+    max-height: 900px;
+    top: -15%;
+    left: -10%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.40) 0%, rgba(79, 70, 229, 0.20) 50%, transparent 70%);
+    animation: var(--animate-aurora-1);
+  }
+
+  /* Orb 2 – cyan, bottom-right */
+  .aurora-bg::after {
+    width: 60vw;
+    height: 60vw;
+    max-width: 800px;
+    max-height: 800px;
+    bottom: -10%;
+    right: -10%;
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.28) 0%, rgba(6, 182, 212, 0.14) 50%, transparent 70%);
+    animation: var(--animate-aurora-2);
+  }
+
+  /* Orb 3 – violet, centre-right */
+  .aurora-orb-3 {
+    position: fixed;
+    width: 50vw;
+    height: 50vw;
+    max-width: 700px;
+    max-height: 700px;
+    top: 30%;
+    right: -5%;
+    border-radius: 50%;
+    filter: blur(90px);
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.22) 0%, rgba(139, 92, 246, 0.10) 50%, transparent 70%);
+    animation: var(--animate-aurora-3);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Drifting dot-grid overlay */
+  .aurora-grid {
+    position: fixed;
+    inset: -10%;
+    width: 120%;
+    height: 120%;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle, rgba(99, 102, 241, 0.12) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: var(--animate-grid-drift);
+    will-change: transform;
+  }
+
+  /* All page content above the background */
+  body > div,
+  body > main,
+  body > header,
+  body > footer,
+  body > section {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* ── Glassmorphism utility ── */
+.glass {
+  background: rgba(15, 22, 45, 0.55);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+}
+.glass-light {
+  background: rgba(99, 102, 241, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+}
+
+/* ── Gradient text utility ── */
+.gradient-text {
+  background: linear-gradient(135deg, #818cf8 0%, #22d3ee 50%, #a78bfa 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: var(--animate-gradient);
+}
+
+/* ── Glow utilities ── */
+.glow-indigo {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.35), 0 0 60px rgba(99, 102, 241, 0.15);
+}
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.35), 0 0 60px rgba(34, 211, 238, 0.12);
 }
 
 @media print {
-  html,
-  body {
+  html, body {
     background: #ffffff !important;
     color: #000000 !important;
   }
-
-  body * {
-    visibility: hidden !important;
-  }
-
-  .no-print {
-    display: none !important;
-  }
+  body * { visibility: hidden !important; }
+  .no-print { display: none !important; }
+  .aurora-bg, .aurora-orb-3, .aurora-grid { display: none !important; }
 
   .resume-print,
   .resume-print *,
@@ -179,48 +321,25 @@
     box-shadow: none !important;
     background: #ffffff !important;
   }
-
-  .resume-scale {
-    transform: none !important;
-    scale: 1 !important;
-  }
-
-  a {
-    color: #000000 !important;
-    text-decoration: none !important;
-  }
+  .resume-scale { transform: none !important; scale: 1 !important; }
+  a { color: #000000 !important; text-decoration: none !important; }
 }
 
-/* ============================================
-   PAGE BREAK CONTROL
-   Prevents individual items from being split
-   across pages during PDF generation.
-   NOTE: Sections CAN span pages - only individual
-   items (job entries, project entries) stay together.
-   ============================================ */
-
-/* Individual items should stay together (job entries, projects, etc.) */
+/* ── Page-break control (PDF generation) ── */
 .resume-body .resume-item {
   break-inside: avoid;
   page-break-inside: avoid;
 }
-
-/* Section titles should not be orphaned at bottom of page */
 .resume-body .resume-section-title,
 .resume-body .resume-section-title-sm {
   break-after: avoid;
   page-break-after: avoid;
-  /* Ensure at least 3 lines of content follow the header before a page break */
   orphans: 3;
   widows: 3;
 }
-
-/* Keep section header together with its first item */
 .resume-body .resume-section {
-  break-inside: auto; /* Allow sections to span pages */
+  break-inside: auto;
 }
-
-/* Ensure the header + first content element stay together */
 .resume-body .resume-section-title + .resume-items > *:first-child,
 .resume-body .resume-section-title-sm + .resume-items > *:first-child,
 .resume-body .resume-section-title + p,
@@ -232,33 +351,25 @@
   break-before: avoid;
   page-break-before: avoid;
 }
-
-/* Generic no-break class for any element */
 .resume-body [data-no-break] {
   break-inside: avoid;
   page-break-inside: avoid;
 }
 
-/* Print-specific overrides for resume templates */
 @media print {
   .resume-body {
     padding: var(--margin-top) var(--margin-right) var(--margin-bottom) var(--margin-left) !important;
   }
-
   .resume-body .resume-section-title,
   .resume-body .resume-section-title-sm {
     border-bottom-color: #9ca3af !important;
     break-after: avoid !important;
     page-break-after: avoid !important;
   }
-
-  /* Reinforce page break rules in print - only for individual items */
   .resume-body .resume-item {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
-
-  /* Keep section header with first content in print */
   .resume-body .resume-section-title + .resume-items > *:first-child,
   .resume-body .resume-section-title-sm + .resume-items > *:first-child,
   .resume-body .resume-section-title + p,

@@ -1373,11 +1373,11 @@ export default function SettingsPage() {
         </div>
 
         {/* Footer */}
-        <div className="bg-secondary p-4 border-t border-black flex justify-between items-center">
+        <div className="bg-secondary p-4 border-t border-zinc-800 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Image
               src="/logo.svg"
-              alt="Resume Matcher"
+              alt="CareerOS"
               width={20}
               height={20}
               className="w-5 h-5"

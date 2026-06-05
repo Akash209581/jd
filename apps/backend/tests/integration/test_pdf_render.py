@@ -1,6 +1,6 @@
 """Render smoke tests for app/pdf.py — the 'resume won't render' incident class.
 
-A live demo of Resume-Matcher once broke a YouTuber's stream because PDF
+A live demo of CareerOS once broke a YouTuber's stream because PDF
 rendering failed. These tests give real coverage to the render path:
 
 * Pure helpers (format/margins) always run — no browser required.

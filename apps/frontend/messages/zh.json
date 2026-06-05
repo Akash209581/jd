@@ -32,10 +32,24 @@
     "databaseReset": "数据库已成功重置",
     "popupBlocked": "弹窗被阻止。请允许弹窗或手动打开此链接：{url}"
   },
+  "auth": {
+    "welcomeBack": "欢迎回来",
+    "loginSubtitle": "访问您的控制面板",
+    "createAccount": "创建账户",
+    "signupSubtitle": "注册您的凭据",
+    "email": "电子邮件地址",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "signIn": "登录",
+    "signUp": "创建账户",
+    "submitting": "处理中...",
+    "noAccount": "还没有账户？立即注册",
+    "hasAccount": "已有账户？立即登录"
+  },
   "home": {
-    "brandLine1": "简历",
-    "brandLine2": "匹配器",
-    "docs": "使用文档",
+    "brandLine1": "Career",
+    "brandLine2": "OS",
+    "docs": "文档",
     "launchApp": "启动应用"
   },
   "nav": {
@@ -342,8 +356,8 @@
           "website": "网站"
         },
         "placeholders": {
-          "projectName": "Resume Matcher",
-          "role": "作者",
+          "projectName": "CareerOS",
+          "role": "创建者",
           "years": "2023年3月",
           "github": "github.com/username/project",
           "website": "https://project-demo.com",
@@ -928,7 +942,7 @@
       "upload": {
         "kicker": "现有文件",
         "title": "上传简历",
-        "description": "从 PDF、DOC 或 DOCX 文件开始，让 Resume Matcher 将其解析为你的主档案。",
+        "description": "从 PDF、DOC 或 DOCX 文件开始，让 CareerOS 将其解析为你的主档案。",
         "action": "上传简历"
       },
       "wizard": {

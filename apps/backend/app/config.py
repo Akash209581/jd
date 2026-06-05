@@ -242,6 +242,7 @@ class Settings(BaseSettings):
     reload: bool = False
     log_level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = "INFO"
     frontend_base_url: str = "http://localhost:3000"
+    database_url: str | None = None
 
     # Hard timeout (seconds) for a single resume tailoring/improve request — the
     # backend wraps the improve flow in asyncio.wait_for(timeout=this). It MUST be
@@ -316,7 +317,7 @@ class Settings(BaseSettings):
     @property
     def sqlite_path(self) -> Path:
         """Path to the SQLite database file (primary data store)."""
-        return self.data_dir / "resume_matcher.db"
+        return self.data_dir / "careeros.db"
 
     @property
     def config_path(self) -> Path:

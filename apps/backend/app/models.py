@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM models for Resume Matcher.
+"""SQLAlchemy ORM models for CareerOS.
 
 A single declarative ``Base`` backs all tables (doc tables migrated from
 TinyDB plus the new ``applications`` and ``api_keys`` tables). The facade in
@@ -27,12 +27,24 @@ class Base(DeclarativeBase):
     """Declarative base shared by every table."""
 
 
+class User(Base):
+    """User accounts table."""
+
+    __tablename__ = "users"
+
+    user_id: Mapped[str] = mapped_column(String, primary_key=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String)
+    created_at: Mapped[str] = mapped_column(String, default=_utcnow_iso)
+
+
 class Resume(Base):
     """A resume document (master or tailored)."""
 
     __tablename__ = "resumes"
 
     resume_id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     content: Mapped[str] = mapped_column(Text)
     content_type: Mapped[str] = mapped_column(String, default="md")
     filename: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -51,13 +63,15 @@ class Resume(Base):
     updated_at: Mapped[str] = mapped_column(String, default=_utcnow_iso)
 
     __table_args__ = (
-        # At most one master resume. Partial unique index enforces the invariant
+        # At most one master resume per user. Partial unique index enforces the invariant
         # at the storage layer; ``_master_resume_lock`` remains the primary
         # (race-free) mechanism in the facade.
         Index(
             "ux_resumes_single_master",
+            "user_id",
             "is_master",
             unique=True,
+            postgresql_where=text("is_master = TRUE"),
             sqlite_where=text("is_master = 1"),
         ),
     )
@@ -76,6 +90,7 @@ class Job(Base):
     __tablename__ = "jobs"
 
     job_id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     content: Mapped[str] = mapped_column(Text)
     resume_id: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[str] = mapped_column(String, default=_utcnow_iso)
@@ -88,6 +103,7 @@ class Improvement(Base):
     __tablename__ = "improvements"
 
     request_id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     original_resume_id: Mapped[str] = mapped_column(String)
     tailored_resume_id: Mapped[str] = mapped_column(String, index=True)
     job_id: Mapped[str] = mapped_column(String)
@@ -100,12 +116,12 @@ class Application(Base):
 
     __tablename__ = "applications"
     __table_args__ = (
-        # Concurrency-safe dedupe: a card is unique per (job, applied resume).
-        # The app-level select-then-insert relies on this to collapse races.
-        UniqueConstraint("job_id", "resume_id", name="uq_application_job_resume"),
+        # Concurrency-safe dedupe: a card is unique per user, job, and applied resume.
+        UniqueConstraint("user_id", "job_id", "resume_id", name="uq_application_user_job_resume"),
     )
 
     application_id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     job_id: Mapped[str] = mapped_column(String, index=True)
     # The applied/tailored resume shown in the modal and opened by "Edit".
     resume_id: Mapped[str] = mapped_column(String, index=True)
@@ -124,13 +140,12 @@ class Application(Base):
 class ApiKey(Base):
     """An encrypted LLM provider API key.
 
-    ``provider`` is the *key-store* provider name (e.g. ``google`` for the
-    ``gemini`` LLM provider, via ``_PROVIDER_KEY_MAP``). Only ciphertext is
-    stored; plaintext exists in memory only at call time.
+    Composite primary key of (provider, user_id) allows each user to store keys.
     """
 
     __tablename__ = "api_keys"
 
     provider: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String, primary_key=True, default="default", index=True)
     ciphertext: Mapped[str] = mapped_column(Text)
     updated_at: Mapped[str] = mapped_column(String, default=_utcnow_iso)

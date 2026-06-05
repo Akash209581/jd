@@ -32,9 +32,23 @@
     "databaseReset": "Database reset successfully",
     "popupBlocked": "Popup blocked. Please allow popups or open this URL manually: {url}"
   },
+  "auth": {
+    "welcomeBack": "Welcome Back",
+    "loginSubtitle": "Access Your Control Panel",
+    "createAccount": "Create Account",
+    "signupSubtitle": "Register Your Credentials",
+    "email": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "signIn": "Sign In",
+    "signUp": "Create Account",
+    "submitting": "Processing...",
+    "noAccount": "Don't have an account? Sign up",
+    "hasAccount": "Already have an account? Log in"
+  },
   "home": {
-    "brandLine1": "Resume",
-    "brandLine2": "Matcher",
+    "brandLine1": "Career",
+    "brandLine2": "OS",
     "docs": "Docs",
     "launchApp": "Launch App"
   },
@@ -342,7 +356,7 @@
           "website": "Website"
         },
         "placeholders": {
-          "projectName": "Resume Matcher",
+          "projectName": "CareerOS",
           "role": "Creator",
           "years": "Mar 2023",
           "github": "github.com/username/project",
@@ -928,7 +942,7 @@
       "upload": {
         "kicker": "Existing File",
         "title": "Upload a resume",
-        "description": "Start from a PDF, DOC, or DOCX file and let Resume Matcher parse it into your master profile.",
+        "description": "Start from a PDF, DOC, or DOCX file and let CareerOS parse it into your master profile.",
         "action": "Upload Resume"
       },
       "wizard": {

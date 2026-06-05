@@ -28,6 +28,9 @@ class TestCrypto:
         assert secret.exists()
         # Owner read/write only (mode bits 0o600). Skip the check on platforms
         # that don't support chmod semantics.
+        import sys
+        if sys.platform == "win32":
+            pytest.skip("chmod permissions not supported on Windows")
         mode = secret.stat().st_mode & 0o777
         assert mode == 0o600
 

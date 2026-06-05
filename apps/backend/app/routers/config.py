@@ -1,5 +1,6 @@
 """LLM configuration endpoints."""
 
+import asyncio
 import json
 import logging
 from pathlib import Path
@@ -33,6 +34,7 @@ from app.prompts import (
 )
 from app.prompts.templates import COVER_LETTER_PROMPT, OUTREACH_MESSAGE_PROMPT
 from app.config import (
+    _read_config_json,
     get_api_keys_from_config,
     save_api_keys_to_config,
     delete_api_key_from_config,
@@ -255,7 +257,9 @@ SUPPORTED_LANGUAGES = ["en", "es", "zh", "ja", "pt"]
 @router.get("/language", response_model=LanguageConfigResponse)
 async def get_language_config() -> LanguageConfigResponse:
     """Get current language configuration."""
-    stored = _load_config()
+    # Use file-only read — language config never needs API keys.
+    # Avoids the blocking sync PostgreSQL query that load_config_file() triggers.
+    stored = await asyncio.to_thread(_read_config_json)
 
     # Support legacy single 'language' field migration
     legacy_language = stored.get("language", "en")
@@ -272,7 +276,8 @@ async def update_language_config(
     request: LanguageConfigRequest,
 ) -> LanguageConfigResponse:
     """Update language configuration."""
-    stored = _load_config()
+    # File-only read/write — no API keys needed for language settings.
+    stored = await asyncio.to_thread(_read_config_json)
 
     # Validate and update UI language
     if request.ui_language is not None:
