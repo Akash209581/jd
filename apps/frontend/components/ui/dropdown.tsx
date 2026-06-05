@@ -83,6 +83,7 @@ export function Dropdown({
           aria-expanded={isOpen}
           aria-controls={isOpen ? menuId : undefined}
           aria-label={label}
+          suppressHydrationWarning
           className="w-full flex items-center justify-between border border-black bg-white px-4 py-3 font-mono text-sm transition-all duration-150 ease-out shadow-sw-sm hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] disabled:opacity-50 disabled:cursor-not-allowed rounded-none"
         >
           <div className="flex-1 text-left min-w-0">
@@ -127,6 +128,7 @@ export function Dropdown({
                     role="menuitemradio"
                     aria-checked={option.id === value}
                     onClick={() => handleSelect(option.id)}
+                    suppressHydrationWarning
                     className={`w-full px-4 py-3 text-left font-mono transition-colors duration-150 border border-black ${
                       option.id === value
                         ? 'bg-green-700 text-white'

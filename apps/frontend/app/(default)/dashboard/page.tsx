@@ -5,7 +5,7 @@ import { ResumeUploadDialog } from '@/components/dashboard/resume-upload-dialog'
 import { MasterResumeChoiceDialog } from '@/components/dashboard/master-resume-choice-dialog';
 import { useState, useEffect, useCallback, useRef, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button, getButtonClass } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Card, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
@@ -328,11 +328,12 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-          <Link href="/settings">
-            <Button variant="outline" size="sm" className="border-warning text-amber-700">
-              <Settings className="w-4 h-4 mr-2" />
-              {t('nav.settings')}
-            </Button>
+          <Link
+            href="/settings"
+            className={getButtonClass('outline', 'sm', 'border-warning text-amber-700')}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            {t('nav.settings')}
           </Link>
         </div>
       )}

@@ -35,7 +35,7 @@ import { API_URL } from '@/lib/api/client';
 import { getVersionString } from '@/lib/config/version';
 import { ToggleSwitch } from '@/components/ui/toggle-switch';
 import { useStatusCache } from '@/lib/context/status-cache';
-import { Button } from '@/components/ui/button';
+import { Button, getButtonClass } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -640,11 +640,12 @@ export default function SettingsPage() {
               {t('settings.subtitle')}
             </p>
           </div>
-          <Link href="/dashboard">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="w-4 h-4" />
-              {t('common.back')}
-            </Button>
+          <Link
+            href="/dashboard"
+            className={getButtonClass('outline', 'sm')}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {t('common.back')}
           </Link>
         </div>
 
@@ -851,6 +852,7 @@ export default function SettingsPage() {
                     <button
                       key={p}
                       onClick={() => handleProviderChange(p)}
+                      suppressHydrationWarning
                       className={`px-3 py-2 text-xs uppercase ${SEGMENTED_BUTTON_BASE} ${
                         provider === p ? SEGMENTED_BUTTON_ACTIVE : SEGMENTED_BUTTON_INACTIVE
                       }`}
@@ -944,6 +946,7 @@ export default function SettingsPage() {
                           <button
                             type="button"
                             onClick={() => setKeyToDelete(s.provider)}
+                            suppressHydrationWarning
                             className="font-mono text-xs uppercase text-destructive hover:underline"
                             aria-label={t('settings.apiKeys.deleteAria', {
                               provider: API_KEY_PROVIDER_INFO[s.provider]?.name ?? s.provider,
@@ -1144,6 +1147,7 @@ export default function SettingsPage() {
                       value={coverLetterPrompt}
                       onChange={(e) => setCoverLetterPrompt(e.target.value)}
                       placeholder={coverLetterDefault}
+                      suppressHydrationWarning
                       className="w-full rounded-none border border-black bg-white p-3 font-mono text-xs break-words focus:outline-none focus:shadow-[4px_4px_0_0_#000]"
                     />
                     <p className="text-xs text-steel-grey font-mono">
@@ -1201,6 +1205,7 @@ export default function SettingsPage() {
                       value={outreachPrompt}
                       onChange={(e) => setOutreachPrompt(e.target.value)}
                       placeholder={outreachDefault}
+                      suppressHydrationWarning
                       className="w-full rounded-none border border-black bg-white p-3 font-mono text-xs break-words focus:outline-none focus:shadow-[4px_4px_0_0_#000]"
                     />
                     <p className="text-xs text-steel-grey font-mono">
@@ -1277,6 +1282,7 @@ export default function SettingsPage() {
                       key={`ui-${lang}`}
                       onClick={() => setUiLanguage(lang as Locale)}
                       disabled={languageLoading}
+                      suppressHydrationWarning
                       className={`px-4 py-3 text-sm ${SEGMENTED_BUTTON_BASE} ${uiLanguage === lang ? SEGMENTED_BUTTON_ACTIVE : SEGMENTED_BUTTON_INACTIVE}`}
                     >
                       {languageNames[lang]}
@@ -1304,6 +1310,7 @@ export default function SettingsPage() {
                       key={`content-${lang}`}
                       onClick={() => setContentLanguage(lang as SupportedLanguage)}
                       disabled={languageLoading}
+                      suppressHydrationWarning
                       className={`px-4 py-3 text-sm ${SEGMENTED_BUTTON_BASE} ${contentLanguage === lang ? SEGMENTED_BUTTON_ACTIVE : SEGMENTED_BUTTON_INACTIVE}`}
                     >
                       {languageNames[lang]}

@@ -59,6 +59,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
         aria-labelledby={labelId}
         disabled={disabled}
         onClick={handleToggle}
+        suppressHydrationWarning
         className={cn(
           'relative inline-flex h-6 w-12 shrink-0 cursor-pointer items-center',
           'border-2 border-black transition-colors',

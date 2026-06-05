@@ -7,6 +7,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, ...props }, ref) => {
     return (
       <textarea
+        suppressHydrationWarning
         className={cn(
           'flex min-h-[60px] w-full border border-black bg-transparent px-3 py-2 text-sm placeholder:text-steel-grey focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50 rounded-none',
           className
