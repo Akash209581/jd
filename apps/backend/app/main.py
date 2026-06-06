@@ -50,7 +50,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
             for prefix in [
                 "/api/v1/auth",
                 "/api/v1/health",
-                "/api/v1/resumes/upload",  # allow anonymous uploads for testing
                 "/docs",
                 "/redoc",
                 "/openapi.json",
@@ -64,8 +63,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             current_user_id_var.set(None)
             return await call_next(request)
             
-        # Optional authentication for status endpoint
-        is_optional = (path == "/api/v1/status")
+        # Optional authentication for status and upload endpoints
+        is_optional = (path == "/api/v1/status" or path == "/api/v1/resumes/upload")
         
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):

@@ -329,9 +329,9 @@ class TestFeaturePrompts:
 class TestLanguageConfig:
     """GET/PUT /api/v1/config/language"""
 
-    @patch("app.routers.config._load_config")
-    async def test_get_language(self, mock_load, client):
-        mock_load.return_value = {"ui_language": "en", "content_language": "es"}
+    @patch("app.routers.config._read_config_json")
+    async def test_get_language(self, mock_read, client):
+        mock_read.return_value = {"ui_language": "en", "content_language": "es"}
         async with client:
             resp = await client.get("/api/v1/config/language")
         assert resp.status_code == 200
